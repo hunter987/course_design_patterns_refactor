@@ -1,35 +1,35 @@
-from flask import Flask, request
-from flask_restful import Resource, Api, reqparse
+from flask import request
 import json
 from utils.database_connection import DatabaseConnection
+from endpoints.base_resource import AuthenticatedResource
 
 def is_valid_token(token):
     return token == 'abcd1234'
 
-class CategoriesResource(Resource):
+class CategoriesResource(AuthenticatedResource):
     def __init__(self):
-
         self.db = DatabaseConnection('db.json')
         self.db.connect()
-
         self.categories_data = self.db.get_categories()
-        self.parser = reqparse.RequestParser()
 
     def get(self, category_id=None):
-        token = request.headers.get('Authorization')
-        if not token:
-            return { 'message': 'Unauthorized acces token not found'}, 401
-        if not is_valid_token(token):
-           return { 'message': 'Unauthorized invalid token'}, 401
+        # 1. Validar token con la clase base
+        error = self._require_valid_token()
+        if error:
+            return error
 
+        # 2. Lógica original (ejemplo)
         if category_id is not None:
-            category = next((p for p in self.categories_data if p['id'] == category_id), None)
+            category = next(
+                (c for c in self.categories_data if c['id'] == category_id),
+                None
+            )
             if category is not None:
                 return category
             else:
                 return {'message': 'Category not found'}, 404
-         
-        return self.categories_data 
+
+        return self.categories_data
 
     def post(self):
         token = request.headers.get('Authorization')
