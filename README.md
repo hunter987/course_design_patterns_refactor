@@ -1,3 +1,6 @@
+Main branch: original project  
+Refactor branch: code improved using design patterns  
+
 # Description
 
 The following is a simple implementation of a REST API with poor coding practices and no software design. Try to improve this code by applying everything you've learned about software design patterns, clean code, and SOLID principles.
