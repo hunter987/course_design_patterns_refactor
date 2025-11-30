@@ -1,66 +1,58 @@
+from flask_restful import reqparse
 from flask import request
-import json
 from utils.database_connection import DatabaseConnection
 from endpoints.base_resource import AuthenticatedResource
 
-def is_valid_token(token):
-    return token == 'abcd1234'
 
-class CategoriesResource(AuthenticatedResource):
+class FavoritesResource(AuthenticatedResource):
     def __init__(self):
-        self.db = DatabaseConnection('db.json')
+        self.db = DatabaseConnection('favorites.json')
         self.db.connect()
-        self.categories_data = self.db.get_categories()
+        self.favorites = self.db.get_favorites()
+        self.parser = reqparse.RequestParser()
 
-    def get(self, category_id=None):
+    def get(self, favorite_id=None):
         # 1. Validar token con la clase base
         error = self._require_valid_token()
         if error:
             return error
 
-        # 2. Lógica original (ejemplo)
-        if category_id is not None:
-            category = next(
-                (c for c in self.categories_data if c['id'] == category_id),
+        # 2. Lógica original
+        if favorite_id is not None:
+            favorite = next(
+                (f for f in self.favorites if f['id'] == favorite_id),
                 None
             )
-            if category is not None:
-                return category
+            if favorite is not None:
+                return favorite
             else:
-                return {'message': 'Category not found'}, 404
+                return {'message': 'Favorite not found'}, 404
 
-        return self.categories_data
+        return self.favorites
 
     def post(self):
-        token = request.headers.get('Authorization')
-        if not token:
-            return { 'message': 'Unauthorized acces token not found'}, 401
-        if not is_valid_token(token):
-           return { 'message': 'Unauthorized invalid token'}, 401
+        # 1. Validar token con la clase base
+        error = self._require_valid_token()
+        if error:
+            return error
 
-        self.parser.add_argument('name', type=str, required=True, help='Name of the category')
- 
-        args = self.parser.parse_args()
-        print("*****",args)
-        new_category_name = args['name']
-        if not new_category_name:
-            return {'message': 'Category name is required'}, 400
+        # 2. Parsear argumentos (ajusta si tu versión original difiere)
+        parser = reqparse.RequestParser()
+        parser.add_argument('product_id', type=int, required=True, help='ID of the product')
+        parser.add_argument('user_id', type=int, required=True, help='ID of the user')
 
-        categories = self.categories_data
-        if new_category_name in categories:
-            return {'message': 'Category already exists'}, 400
+        args = parser.parse_args()
 
-        new_category = {
-                'id': len(self.categories_data) + 1,
-                'name': new_category_name
+        new_favorite = {
+            'id': len(self.favorites) + 1,
+            'product_id': args['product_id'],
+            'user_id': args['user_id']
         }
 
-        categories.append(new_category)
-        self.categories_data = categories
-        
-        self.db.add_category(new_category)
+        self.favorites.append(new_favorite)
+        self.db.add_favorite(new_favorite)
 
-        return {'message': 'Category added successfully'}, 201
+        return {'message': 'Favorite added', 'favorite': new_favorite}, 201
 
     def delete(self):
         token = request.headers.get('Authorization')

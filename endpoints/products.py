@@ -1,5 +1,4 @@
 from flask_restful import reqparse
-import json
 from flask import request
 from utils.database_connection import DatabaseConnection
 from endpoints.base_resource import AuthenticatedResource
