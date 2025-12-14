@@ -1,42 +1,46 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 from utils.user_models import User
 
 
 class UserRepository(ABC):
     """
-    Patrón Repository para abstraer el acceso a datos de usuarios.
+    Repository: define el contrato para persistencia/consulta de usuarios.
+    Permite intercambiar la implementación (memoria, JSON, DB real) sin afectar el Service Layer.
     """
 
     @abstractmethod
     def save(self, user: User) -> User:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def update(self, user: User) -> User:
-        pass
+    def update(self, user: User) -> Optional[User]:
+        """
+        Actualiza un usuario existente. Retorna None si no existe.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def deactivate(self, user_id: int) -> Optional[User]:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def find_by_id(self, user_id: int) -> Optional[User]:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def find_all(self, filters: Optional[Dict] = None) -> List[User]:
-        pass
+    def find_all(self, filters: Optional[Dict[str, Any]] = None) -> List[User]:
+        raise NotImplementedError
 
 
 class InMemoryUserRepository(UserRepository):
     """
-    Implementación simple en memoria.
-    Es suficiente para la actividad y para hacer pruebas unitarias.
+    Implementación en memoria.
+    Adecuada para pruebas unitarias y demostración del patrón Repository.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._users: List[User] = []
         self._next_id = 1
 
@@ -46,29 +50,27 @@ class InMemoryUserRepository(UserRepository):
         self._users.append(user)
         return user
 
-    def update(self, user: User) -> User:
+    def update(self, user: User) -> Optional[User]:
         for idx, existing in enumerate(self._users):
             if existing.id == user.id:
                 self._users[idx] = user
                 return user
-        # si no existe, por simplicidad lo agregamos
-        return self.save(user)
+        return None
 
     def deactivate(self, user_id: int) -> Optional[User]:
         user = self.find_by_id(user_id)
-        if user:
+        if user is not None:
             user.is_active = False
         return user
 
     def find_by_id(self, user_id: int) -> Optional[User]:
         return next((u for u in self._users if u.id == user_id), None)
 
-    def find_all(self, filters: Optional[Dict] = None) -> List[User]:
-        users = self._users
+    def find_all(self, filters: Optional[Dict[str, Any]] = None) -> List[User]:
+        result = list(self._users)
 
         if filters:
-            # de momento solo filtramos por is_active si viene
             if "is_active" in filters:
-                users = [u for u in users if u.is_active == filters["is_active"]]
+                result = [u for u in result if u.is_active == filters["is_active"]]
 
-        return users
+        return result
